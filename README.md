@@ -1,6 +1,16 @@
 # Contract Checker
 
-AI-powered contract integrity verification using Langchain, computer vision, and document processing.
+AI-powered contract integrity verification using Langchain, computer vision, and docum### Core Components
+
+- **ContractScanner**: Uses docling to extract text, tables, and metadata from PDFs
+- **SignatureDetector**: Uses YOLOv8 or DETR models to detect signatures in document images
+- **Langchain Agent**: GPT-4 powered agent with tool-calling for flexible contract analysis
+- **Langchain Chain**: Deterministic LCEL-based chain for sequential contract processing
+
+### Tools
+
+- `ContractScannerTool`: Extracts contract content and structure information
+- `SignatureDetectorTool`: Identifies signatures and their locations in documentssing.
 
 ## Features
 
@@ -46,21 +56,55 @@ HF_TOKEN=your_huggingface_token_here
 
 ### Basic Usage
 
-Run the contract checker on a sample contract:
+Run the contract checker to test both approaches and models:
 
 ```bash
 uv run python main.py
 ```
+
+This will run analysis using:
+- Agent + YOLO
+- Agent + DETR  
+- Chain + YOLO
+- Chain + DETR
 
 ### Programmatic Usage
 
 ```python
 from main import check_contract
 
-# Analyze a contract
-result = check_contract("path/to/contract.pdf")
-print(result)
+# Agent-based approach (default)
+result = check_contract("path/to/contract.pdf", model_type="yolo", use_chain=False)
+
+# Chain-based approach
+result = check_contract("path/to/contract.pdf", model_type="detr", use_chain=True)
 ```
+
+### Architecture Options
+
+The application provides two LangChain implementation approaches:
+
+#### Agent-Based Approach (`use_chain=False`)
+- Uses `create_openai_tools_agent` with tool-calling capabilities
+- More flexible and conversational
+- Can dynamically decide which tools to use and when
+- Better for complex, multi-step reasoning
+
+#### Chain-Based Approach (`use_chain=True`)
+- Uses LCEL (LangChain Expression Language) for sequential processing
+- Deterministic execution flow: scan → detect → analyze
+- More predictable and easier to debug
+- Better performance for straightforward workflows
+
+### Comparison: Agent vs Chain
+
+| Aspect | Agent-Based | Chain-Based |
+|--------|-------------|-------------|
+| Flexibility | High - can dynamically choose tools | Low - fixed execution order |
+| Reasoning | Complex multi-step reasoning | Sequential processing |
+| Performance | Variable (may call tools multiple times) | Consistent (single pass) |
+| Debugging | Complex (agent decisions) | Simple (linear flow) |
+| Use Case | Complex analysis requiring decisions | Standard contract checking |
 
 ### Custom Contract Analysis
 
