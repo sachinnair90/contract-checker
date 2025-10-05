@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, Any
 import numpy as np
 import supervision as sv
-import fitz
+import pymupdf as fitz
 import torch
 
 from ultralytics import YOLO

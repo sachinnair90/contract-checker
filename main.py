@@ -6,11 +6,12 @@ import os
 
 from dotenv import load_dotenv
 from langchain.tools import BaseTool
-from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 from langchain.agents import AgentExecutor, create_openai_tools_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
+from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
+from pydantic import ConfigDict
 
 from src.utils import ContractScanner, SignatureDetector
 
@@ -20,6 +21,7 @@ class ContractScannerTool(BaseTool):
 
     name: str = "contract_scanner"
     description: str = "Scan a PDF contract to extract text " "content and metadata"
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
     def __init__(self):
         super().__init__()
@@ -44,6 +46,7 @@ class SignatureDetectorTool(BaseTool):
 
     name: str = "signature_detector"
     description: str = "Detect signatures in a PDF contract document"
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
 
     def __init__(self, model_type: str = "yolo"):
         super().__init__()
@@ -68,15 +71,24 @@ def create_contract_checker_agent(model_type: str = "yolo"):
     load_dotenv()
 
     # Check for required API keys
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is required")
+    azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+    azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+    if not azure_api_key or not azure_endpoint:
+        raise ValueError("AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT are required")
 
     # Initialize tools
     tools = [ContractScannerTool(), SignatureDetectorTool(model_type=model_type)]
 
     # Create LLM
-    llm = ChatOpenAI(temperature=0, model="gpt-4")
+    llm = AzureChatOpenAI(
+        azure_endpoint=azure_endpoint,
+        azure_deployment=azure_deployment,
+        api_version=azure_api_version,
+        api_key=azure_api_key,
+        temperature=1,
+    )
 
     # Create prompt
     prompt = ChatPromptTemplate.from_messages(
@@ -117,16 +129,25 @@ def create_contract_checker_chain(model_type: str = "yolo"):
     load_dotenv()
 
     # Check for required API keys
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is required")
+    azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+    azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
+    if not azure_api_key or not azure_endpoint:
+        raise ValueError("AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT are required")
 
     # Initialize utilities
     scanner = ContractScanner()
     detector = SignatureDetector(model_type=model_type)
 
     # Create LLM
-    llm = ChatOpenAI(temperature=0, model="gpt-4")
+    llm = AzureChatOpenAI(
+        azure_endpoint=azure_endpoint,
+        azure_deployment=azure_deployment,
+        api_version=azure_api_version,
+        api_key=azure_api_key,
+        temperature=1,
+    )
 
     # Create analysis prompt
     analysis_prompt = ChatPromptTemplate.from_template(
